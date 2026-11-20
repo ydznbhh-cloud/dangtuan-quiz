@@ -109,9 +109,7 @@ window.Sync = (function () {
       if (busy) return;
       var code = getCode();
       if (!code) return;
-      rpc('put_sync', { p_code: code, p_data: Store.exportSyncData() })
-        .then(markSyncAt)
-        .catch(function () { });
+      syncNow(false);
     }, 1500);
   }
 

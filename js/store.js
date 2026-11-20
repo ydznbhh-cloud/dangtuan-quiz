@@ -11,6 +11,13 @@ window.Store = (function () {
   var K_CUR = P + 'cur_user_v1';
   var K_NAME = P + 'nickname_v1';
   var K_FILL = P + 'fill_mastered_v1';
+  var K_DELETED = P + 'deleted_records_v1';
+  function deletedRecordIds() {
+    var ids = read(K_DELETED, []);
+    if (!Array.isArray(ids)) ids = [];
+    // Record explicitly requested for deletion by its owner.
+    return Array.from(new Set(ids.concat(['s1795080547854309'])));
+  }
   function kDraft(id) { return P + 'draft_' + id; }
   function kRecords(id) { return P + 'records_' + id; }
   function kMastered(id) { return P + 'mastered_' + id; }
@@ -152,6 +159,7 @@ window.Store = (function () {
       v: 1,
       name: read(K_NAME, '学习学员'),
       records: getRecords('local'),
+      deletedRecordIds: deletedRecordIds(),
       mastered: read(kMastered('local'), []),
       fillMastered: getFillMastered(),
       exportedAt: Date.now()
@@ -161,6 +169,14 @@ window.Store = (function () {
   function importSyncData(data) {
     if (!data || typeof data !== 'object') return { changed: false, added: 0 };
     var changed = false, added = 0;
+    var deleted = Array.from(new Set(deletedRecordIds().concat(
+      Array.isArray(data.deletedRecordIds) ? data.deletedRecordIds.filter(function (id) { return typeof id === 'string'; }) : [])));
+    write(K_DELETED, deleted);
+    var originalRecords = read(kRecords('local'), []);
+    if (Array.isArray(originalRecords) && originalRecords.some(function (r) { return r && deleted.indexOf(r.id) !== -1; })) {
+      write(kRecords('local'), originalRecords.filter(function (r) { return r && deleted.indexOf(r.id) === -1; }));
+      changed = true;
+    }
 
     /* 昵称：本机仍为默认昵称时才采用云端昵称 */
     var curName = read(K_NAME, '学习学员');
@@ -174,7 +190,7 @@ window.Store = (function () {
     getRecords('local').forEach(function (r) { if (r && r.id) map[r.id] = r; });
     var remote = Array.isArray(data.records) ? data.records : [];
     remote.forEach(function (r) {
-      if (!r || !r.id) return;
+      if (!r || !r.id || deleted.indexOf(r.id) !== -1) return;
       if (!map[r.id]) {
         map[r.id] = r; added++;
       } else {
@@ -230,7 +246,8 @@ window.Store = (function () {
   /* ---------------- 记录 ---------------- */
   function getRecords(uid) {
     var list = read(kRecords(uid), []);
-    return Array.isArray(list) ? list : [];
+    var deleted = deletedRecordIds();
+    return Array.isArray(list) ? list.filter(function (r) { return r && deleted.indexOf(r.id) === -1; }) : [];
   }
   function addRecord(uid, rec) {
     var list = getRecords(uid);
