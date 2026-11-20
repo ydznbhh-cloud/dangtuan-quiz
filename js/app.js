@@ -731,10 +731,19 @@
       '<input class="search" id="wb-search" type="search" placeholder="搜索题干关键词">' +
       '</div>';
 
+    html += '<button class="btn btn-primary" id="retry-wrong">开始错题重做</button><p class="hint">先作答再查看答案；全部选对即自动巩固完成，多选题须全部选对。</p>';
     html += '<div id="wb-list">' + items.map(wrongItemHTML).join('') + '</div>';
 
     appEl.innerHTML = shell('wrongbook', html);
     bindShell();
+
+    document.getElementById('retry-wrong').addEventListener('click', function () {
+      var type = document.querySelector('.chip.active').getAttribute('data-type');
+      var kw = document.getElementById('wb-search').value.trim();
+      var selected = items.filter(function (it) { return (type === 'all' || it.question.type === type) && (!kw || it.question.stem.indexOf(kw) !== -1); });
+      if (!selected.length) return U.toast('当前筛选没有待重做的错题');
+      WrongRetry.start(uid, selected, renderWrongBook);
+    });
 
     U.$$('[data-master]').forEach(function (b) {
       b.addEventListener('click', function () {
