@@ -840,6 +840,7 @@
       '</div>';
 
     html += '<div class="fill-tools">' +
+      '<button class="btn btn-sm btn-primary" id="fill-random">随机练习（输入答案）</button>' +
       '<button class="btn btn-sm btn-ghost" id="fill-show-all">全部显示答案</button>' +
       '<button class="btn btn-sm btn-ghost" id="fill-hide-all">全部隐藏答案</button>' +
       '</div>';
@@ -862,6 +863,7 @@
       fillKw = e.target.value.trim();
       renderFillList();
     });
+    document.getElementById('fill-random').addEventListener('click', function () { FillPractice.start(renderFill); });
     document.getElementById('fill-show-all').addEventListener('click', function () {
       U.$$('#fill-list .fill-card').forEach(function (c) {
         c.classList.add('show');
